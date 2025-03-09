@@ -9,6 +9,7 @@
 using namespace std;
 
 enum notation {
+    error,
     binary,
     octal,
     hexadecimal
@@ -22,7 +23,9 @@ string infile;
 string outfile;
 
 void help_message() {
-    cout << "Usage:" << endl;
+    cout << "Help:"<< endl;
+    cout << "--help: Show this help" << endl;
+    cout << "<input_file> <output_file>: Read and Write from files" << endl;
 }
 
 vector<char> to_valid(const notation notation) {
@@ -33,8 +36,12 @@ vector<char> to_valid(const notation notation) {
             return {'0','1','2','3','4','5','6','7'};
         case hexadecimal:
             return {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        default:
+            return {};
     }
 }
+
+
 
 int dig_from_notation(const notation notation) {
     switch (notation) {
@@ -44,7 +51,26 @@ int dig_from_notation(const notation notation) {
             return 8;
         case hexadecimal:
             return 16;
+        default:
+            return 0;
     }
+}
+notation ch_notation(const char type) {
+    notation select_notation;
+    switch (type) {
+        case '1':
+            select_notation = binary;
+        break;
+        case '2':
+            select_notation = octal;
+        break;
+        case '3':
+            select_notation = hexadecimal;
+        break;
+        default:
+            select_notation = error;
+    }
+    return select_notation;
 }
 
 notation select_notation() {
@@ -58,57 +84,54 @@ notation select_notation() {
     while (error_type) {
         error_type = false;
         cin >> type;
-        switch (type) {
-            case '1':
-                select_notation = binary;
-            break;
-            case '2':
-                select_notation = octal;
-            break;
-            case '3':
-                select_notation = hexadecimal;
-            break;
-            default:
-                cout << "Invalid input,try again" << endl;
-                error_type = true;
+        select_notation = ch_notation(type);
+        if (select_notation == notation::error) {
+            error_type = true;
+            cout << "Invalid input." << endl;
         }
     }
     return select_notation;
 }
 
-string enter_number(const notation notation) {
+bool correct_number(const notation notation, const string& number) {
+    bool error_number = false;
     vector<char> valid = to_valid(notation);
+    int i = 0;
+    if (number[0] == '-' or number[0] == '+') {
+        i++;
+    }
+    int dot_count = 0;
+    for (; i < number.length(); i++) {
+        const char c = number[i];
+        if (number[i] != '.') {
+            bool correct = false;
+            for (const char j : valid) {
+                if (c == j) {
+                    correct = true;
+                }
+            }
+            if (!correct) {
+                error_number = true;
+            }
+        }
+        else {
+            dot_count++;
+            if (dot_count > 1) {
+                error_number = true;
+            }
+        }
+    }
+    return error_number;
+}
+
+string enter_number(const notation notation) {
     cout << "Enter double number: "<< endl;
     string number;
     bool error_number = true;
     while (error_number) {
         error_number = false;
         cin >> number;
-        int i = 0;
-        if (number[0] == '-' or number[0] == '+') {
-            i++;
-        }
-        int dot_count = 0;
-        for (; i < number.length(); i++) {
-            const char c = number[i];
-            if (number[i] != '.') {
-                bool correct = false;
-                for (const char j : valid) {
-                    if (c == j) {
-                        correct = true;
-                    }
-                }
-                if (!correct) {
-                    error_number = true;
-                }
-            }
-            else {
-                dot_count++;
-                if (dot_count > 1) {
-                    error_number = true;
-                }
-            }
-        }
+        error_number = correct_number(notation, number);
         if (error_number) {
             cout << "Invalid input,try again" << endl;
         }
@@ -162,37 +185,51 @@ double to_decimal(string number, const notation notation) {
 }
 
 void server() {
-    cout << "Server started." << endl;
     notation notation;
     read(pipe_in[0],&notation,sizeof(notation));
 
     int len;
     read(pipe_in[0],&len , sizeof(len));
-    cout << "Log" << len << endl;
     char * buffer = new char[len+1];
     read(pipe_in[0], buffer, len);
     buffer[len] = '\0';
-    cout << "Log" << buffer << endl;
     const double result = to_decimal(buffer, notation);
-    cout <<"Log: " <<result << endl;
     write(pipe_out[1], &result, sizeof(result));
     delete[] buffer;
 }
 
 void client(const bool file_flag) {
     if (file_flag) {
-        // ifstream file(infile);
-        // if (!file.is_open()) {
-        //     cerr << "Unable to open file " << infile << endl;
-        //     exit(1);
-        // }
-        // cout << "Fiel" << endl;
-        // char type;
-        // file >> type;
-        // string number;
-        // file >> number;
+        ifstream file(infile);
+        if (!file.is_open()) {
+            cerr << "Unable to open file " << infile << endl;
+            exit(1);
+        }
+        char type;
+        file >> type;
+        string number;
+        file >> number;
+        file.close();
+        const notation notation = ch_notation(type);
+        if (notation == notation::error) {
+            cout << "Invalid notation in file." << endl;
+            exit(1);
+        }
+        if (correct_number(notation, number)) {
+            cout << "Invalid number in file." << endl;
+            exit(1);
+        }
+        write(pipe_in[1],&notation , sizeof(notation));
+        const int len = number.length();
 
+        write(pipe_in[1], &len, sizeof(len));
+        write(pipe_in[1], number.c_str(), number.length());
 
+        double result;
+        read(pipe_out[0], &result, sizeof(result));
+        ofstream file_out(outfile);
+        file_out << result;
+        file_out.close();
     }else {
         const notation notation = select_notation();
         write(pipe_in[1],&notation , sizeof(notation));
@@ -242,13 +279,12 @@ int main(int argc, char const *argv[]) {
         process(false);
         return 0;
     }
-    // if (argc == 3) {
-    //     infile = argv[1];
-    //     outfile = argv[2];
-    //     process(true);
-    //     return 0;
-    // }
-
+    if (argc == 3) {
+        infile = argv[1];
+        outfile = argv[2];
+        process(true);
+        return 0;
+    }
     return 1;
 }
 
