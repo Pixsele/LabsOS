@@ -2,7 +2,8 @@
 #include <string>
 
 #define PIPE_NAME "\\\\.\\pipe\\CalcPipe"
-#define PIPE_BUFFER_SIZE 1024
+#define PIPE_BUFFER_SIZE 10000
+
 
 enum commands {
     CALCULATE,

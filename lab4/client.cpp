@@ -36,7 +36,7 @@ class Client {
             WriteFile(
                 hPipe,
                 message.c_str(),
-                message.size(),
+                message.size()+1,
                 nullptr,
                 nullptr);
 
