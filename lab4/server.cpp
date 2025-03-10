@@ -44,6 +44,9 @@ class CalcServer {
     }
 
     static bool check_correct_number(std::string number) {
+        if (number[0] == '-') {
+            number.erase(0, 1);
+        }
         int dot_count = 0;
         for (int i = number.size() - 1; i >= 0; i--) {
             if (number[i] == '.') {
@@ -101,11 +104,15 @@ class CalcServer {
         std::stack<char> operators;
         std::queue<std::string> output;
         std::string number;
+        bool lastWasOperator = true;
 
         for (size_t i = 0; i < expr.length(); i++) {
             char ch = expr[i];
 
             if (isdigit(ch) || ch == '.') {
+                number += ch;
+                lastWasOperator = false;
+            } else if (ch == '-' && lastWasOperator) {
                 number += ch;
             } else {
                 if (!number.empty()) {
@@ -119,6 +126,9 @@ class CalcServer {
                         operators.pop();
                     }
                     operators.push(ch);
+                    lastWasOperator = true;
+                }else {
+                    lastWasOperator = false;
                 }
             }
         }
@@ -135,7 +145,7 @@ class CalcServer {
             std::string token = output.front();
             output.pop();
 
-            if (isdigit(token[0])) {
+            if (isdigit(token[0]) || (token.length()>1 && token[0] == '-')) {
                 values.push(stod(token));
             } else {
                 const double b = values.top(); values.pop();

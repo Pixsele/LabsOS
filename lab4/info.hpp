@@ -14,7 +14,7 @@ enum commands {
 };
 
 inline commands check_command(const std::string& command) {
-    if (command == "CALCULATE")
+    if (command == "CALCULATE" || command == "=")
         return CALCULATE;
     if (command == "CLEAR")
         return CLEAR;
