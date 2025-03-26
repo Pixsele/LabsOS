@@ -72,6 +72,9 @@ class CalcServer {
         if (str[0] == '+' || str[0] == '-' || str[0] == '*' || str[0] == '/') {
             const char type = str[0];
             str.erase(0,1);
+            if (str.length() == 0) {
+                return false;
+            }
             if (check_correct_number(str)) {
                 response = response + type + str;
                 return true;
@@ -187,6 +190,14 @@ class CalcServer {
 
             std::string request = std::string(buffer);
             std::string response_message;
+
+            if (check_command(request) == commands::EXIT) {
+                std:: cout << "Server log: Exiting..." << std::endl;
+                response_message = "q";
+                send_message(response_message);
+                break;
+            }
+
             switch (check_command(request)) {
                 case commands::COMMON_MESSAGE:
                     if (add_to_response(request)) {

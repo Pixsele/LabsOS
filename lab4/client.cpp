@@ -29,10 +29,6 @@ class Client {
             std::string message;
             getline(std::cin, message);
 
-            if (check_command(message) ==  commands::EXIT) {
-                break;
-            }
-
             WriteFile(
                 hPipe,
                 message.c_str(),
@@ -47,6 +43,12 @@ class Client {
                 PIPE_BUFFER_SIZE,
                 nullptr,
                 nullptr);
+
+            if (response_buffer[0] == 'q') {
+                std::cout << "Disconnect" << std::endl;
+                break;
+            }
+
             std::cout << response_buffer << std::endl;
         }
     }
