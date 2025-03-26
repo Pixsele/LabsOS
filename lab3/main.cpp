@@ -12,7 +12,12 @@ enum notation {
     error,
     binary,
     octal,
-    hexadecimal
+    hexadecimal,
+    ch11,
+    ch12,
+    ch13,
+    ch14,
+    ch15
 };
 
 
@@ -36,25 +41,21 @@ vector<char> to_valid(const notation notation) {
             return {'0','1','2','3','4','5','6','7'};
         case hexadecimal:
             return {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+        case ch11:
+            return {'0','1','2','3','4','5','6','7','8','9','A'};
+        case ch12:
+            return {'0','1','2','3','4','5','6','7','8','9','A','B'};
+        case ch13:
+            return {'0','1','2','3','4','5','6','7','8','9','A','B','C'};
+        case ch14:
+            return {'0','1','2','3','4','5','6','7','8','9','A','B','C','D'};
+        case ch15:
+            return {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E'};
         default:
             return {};
     }
 }
 
-
-
-int dig_from_notation(const notation notation) {
-    switch (notation) {
-        case binary:
-            return 2;
-        case octal:
-            return 8;
-        case hexadecimal:
-            return 16;
-        default:
-            return 0;
-    }
-}
 notation ch_notation(const char type) {
     notation select_notation;
     switch (type) {
@@ -67,6 +68,21 @@ notation ch_notation(const char type) {
         case '3':
             select_notation = hexadecimal;
         break;
+        case '4':
+            select_notation = ch11;
+            break;
+        case '5':
+            select_notation = ch12;
+            break;
+        case '6':
+            select_notation = ch13;
+            break;
+        case '7':
+            select_notation = ch14;
+            break;
+        case '8':
+            select_notation = ch15;
+            break;
         default:
             select_notation = error;
     }
@@ -78,6 +94,11 @@ notation select_notation() {
     cout << "1 -- Binary" << endl;
     cout << "2 -- Octal" << endl;
     cout << "3 -- Hexadecimal" << endl;
+    cout << "4 -- Ch11" << endl;
+    cout << "5 -- Ch12" << endl;
+    cout << "6 -- Ch13" << endl;
+    cout << "7 -- Ch14" << endl;
+    cout << "8 -- Ch15" << endl;
     notation select_notation = notation::binary;
     char type;
     bool error_type = true;
@@ -145,7 +166,7 @@ double to_decimal(string number, const notation notation) {
         number.erase(0, 1);
     }
     double decimal = 0;
-    const int dig = dig_from_notation(notation);
+    const int dig = to_valid(notation).size();
     if (number.find('.') == string::npos) {
         for (int i = number.length() - 1; i >= 0; i--){
             int temp = 0;
@@ -230,9 +251,9 @@ void client(const bool file_flag) {
         ofstream file_out(outfile);
         file_out << result;
         file_out.close();
-    }else {
+    } else {
         const notation notation = select_notation();
-        write(pipe_in[1],&notation , sizeof(notation));
+        write(pipe_in[1], &notation, sizeof(notation));
 
         const string number = enter_number(notation);
         const int len = number.length();
@@ -242,9 +263,8 @@ void client(const bool file_flag) {
 
         double result;
         read(pipe_out[0], &result, sizeof(result));
-        cout <<"Result: " <<result << endl;
+        cout << "Result: " << result << endl;
     }
-
 }
 
 void process(const bool file_flag) {
@@ -265,12 +285,9 @@ void process(const bool file_flag) {
         close(pipe_in[i]);
         close(pipe_out[i]);
     }
-
 }
 
-
-
-int main(int argc, char const *argv[]) {
+int main(const int argc, char const *argv[]) {
     if (argc == 2 && !strcmp(argv[1], "--help")) {
         help_message();
         return 0;
