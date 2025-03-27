@@ -10,6 +10,9 @@ class Client {
     char response_buffer[PIPE_BUFFER_SIZE];
 
     void connect() {
+        if (!(WaitNamedPipeA(PIPE_NAME, 1000))) {
+            std::cerr << "Pipe not available" << std::endl;
+        }
         hPipe = CreateFileA(PIPE_NAME,
             GENERIC_READ | GENERIC_WRITE,
             0,
@@ -29,23 +32,36 @@ class Client {
             std::string message;
             getline(std::cin, message);
 
-            WriteFile(
+            bool success_write = WriteFile(
                 hPipe,
                 message.c_str(),
                 message.size()+1,
                 nullptr,
                 nullptr);
 
+            if (!success_write) {
+                std::cerr << "Server disconnected" << std::endl;
+                CloseHandle(hPipe);
+                break;
+            }
+
             memset(response_buffer, 0, PIPE_BUFFER_SIZE);
-            ReadFile(
+            bool success_read = ReadFile(
                 hPipe,
                 response_buffer,
                 PIPE_BUFFER_SIZE,
                 nullptr,
                 nullptr);
 
+            if (!success_read) {
+                std::cerr << "Server disconnected" << std::endl;
+                CloseHandle(hPipe);
+                break;
+            }
+
             if (response_buffer[0] == 'q') {
                 std::cout << "Disconnect" << std::endl;
+                CloseHandle(hPipe);
                 break;
             }
 

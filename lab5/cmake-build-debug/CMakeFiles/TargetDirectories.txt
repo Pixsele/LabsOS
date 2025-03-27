@@ -1,0 +1,4 @@
+C:/Prog/LabsOS/lab5/cmake-build-debug/CMakeFiles/server.dir
+C:/Prog/LabsOS/lab5/cmake-build-debug/CMakeFiles/client.dir
+C:/Prog/LabsOS/lab5/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Prog/LabsOS/lab5/cmake-build-debug/CMakeFiles/rebuild_cache.dir

@@ -62,7 +62,7 @@ class CalcServer {
     }
 
     bool add_to_response(std::string str) {
-        if (response == "") {
+        if (response.empty()) {
             if (check_correct_number(str)) {
                 response = str;
                 return true;
@@ -164,7 +164,7 @@ class CalcServer {
         return values.top();
     }
 
-    void send_message(const std::string &message) {
+    void send_message(const std::string &message) const {
         WriteFile(
             hPipe,
             message.c_str(),
