@@ -65,7 +65,7 @@ int main() {
 
     while (true) {
         std::string message;
-        std::cin >> message;
+        getline(std::cin, message);
         to_Server(message,sock);
         std::string from = from_server(sock);
         std::cout << from << "\n";

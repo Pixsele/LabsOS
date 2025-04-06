@@ -4,6 +4,7 @@
 #include <iostream>
 #include <list>
 #include <queue>
+#include <sstream>
 #include <stack>
 #include <thread>
 #include <vector>
@@ -12,12 +13,20 @@ SOCKET sock;
 
 std::vector<SOCKET> run_sockets;
 HANDLE m_client_mutex;
-HANDLE m_semaphore;
-std::string current_expression = "";
+std::string current_expression;
 
 void launch_client() {
     const auto run_client = R"(start C:\Prog\LabsOS\lab5\Client.exe)";
     system(run_client);
+}
+int check_correct_count_of_clients() {
+    int input = 0;
+    while (!(std::cin >> input) || std::cin.peek() != '\n' || input > 2 || input < 1) {
+        std::cin.clear();
+        while (std::cin.get() != '\n'){}
+        std::cout << "Please enter a number between 1 and 2: ";
+    }
+    return input;
 }
 
 bool check_correct_number(std::string number) {
@@ -38,111 +47,111 @@ bool check_correct_number(std::string number) {
     return true;
 }
 
-bool add_to_response(std::string str) {
-    if (current_expression.empty()) {
-        if (check_correct_number(str)) {
-            current_expression = str;
-            return true;
-        }
+bool check_correct_math_expression(std::vector<std::string>& tokens) {
+
+    std::vector<std::string> words;
+    std::stringstream ss(current_expression);
+    std::string word;
+
+    while (ss >> word) {
+        words.push_back(word);
+    }
+
+    if (words.size() < 3) {
         return false;
     }
-    if (str[0] == '+' || str[0] == '-' || str[0] == '*' || str[0] == '/') {
-        const char type = str[0];
-        str.erase(0,1);
-        if (str.length() == 0) {
-            return false;
+
+    bool last_was_digit = true;
+    for (int i = 0; i < words.size(); i++) {
+        const std::string& word = words[i];
+        if (i == 0) {
+            if (!check_correct_number(word)) {
+                return false;
+            }
+        }else {
+            if (last_was_digit) {
+                if (word == "-" || word == "+" || word == "*" || word == "/") {
+                    last_was_digit = false;
+                }
+                else {
+                    return false;
+                }
+            }else {
+                if (check_correct_number(word)) {
+                    last_was_digit = true;
+                }else {
+                    return false;
+                }
+            }
         }
-        if (check_correct_number(str)) {
-            current_expression = current_expression + type + str;
-            return true;
-        }
+    }
+
+    if (word[word.size() - 1] == '+' || word[word.size() - 1] == '-' || word[word.size() - 1] == '*' || word[word.size() - 1] == '/') {
         return false;
     }
-    return false;
+    tokens = words;
+    return true;
 }
 
-bool check_zero() {
-    for (int i = 0; i < current_expression.length() - 1; i++) {
-        if (current_expression[i] == '/' && current_expression[i + 1] == '0') {
+bool check_zero(const std::vector<std::string> &tokens) {
+    for (int i = 0; i < tokens.size() - 1; i++) {
+        if (tokens[i] == "/" && stod(tokens[i + 1]) == 0) {
             return false;
         }
     }
     return true;
 }
 
-int precedence(const char op) {
-    if (op == '+' || op == '-') return 1;
-    if (op == '*' || op == '/') return 2;
+int precedence(const std::string& op) {
+    if (op == "+" || op == "-") return 1;
+    if (op == "*" || op == "/") return 2;
     return 0;
 }
 
-std::string calculate(std::string &expr) {
-    std::stack<char> operators;
+std::string calculate(std::vector<std::string> &expr) {
+    std::stack<std::string> operators;
     std::queue<std::string> output;
-    std::string number;
-    bool lastWasOperator = true;
+    std::stack<double> values;
 
-    for (size_t i = 0; i < expr.length(); i++) {
-        char ch = expr[i];
+    for (size_t i = 0; i < expr.size(); i++) {
+        const std::string &token = expr[i];
+        if (isdigit(token[0]) || (token[0] == '-' && token.length() > 1 && isdigit(token[1]))) {
+            values.push(std::stod(token));
+        } else if (token == "+" || token == "-" || token == "*" || token == "/") {
+            while (!operators.empty() && precedence(operators.top()) >= precedence(token)) {
+                std::string op = operators.top();
+                operators.pop();
 
-        if (isdigit(ch) || ch == '.') {
-            number += ch;
-            lastWasOperator = false;
-        } else if (ch == '-' && lastWasOperator) {
-            number += ch;
-        } else {
-            if (!number.empty()) {
-                output.push(number);
-                number.clear();
+                double b = values.top(); values.pop();
+                double a = values.top(); values.pop();
+
+                if (op == "+") values.push(a + b);
+                if (op == "-") values.push(a - b);
+                if (op == "*") values.push(a * b);
+                if (op == "/") values.push(a / b);
             }
 
-            if (ch == '+' || ch == '-' || ch == '*' || ch == '/') {
-                while (!operators.empty() && precedence(operators.top()) >= precedence(ch)) {
-                    output.push(std::string(1, operators.top()));
-                    operators.pop();
-                }
-                operators.push(ch);
-                lastWasOperator = true;
-            } else {
-                lastWasOperator = false;
-            }
+            operators.push(token);
         }
     }
-
-    if (!number.empty()) output.push(number);
 
     while (!operators.empty()) {
-        output.push(std::string(1, operators.top()));
+        std::string op = operators.top();
         operators.pop();
-    }
 
-    std::stack<double> values;
-    while (!output.empty()) {
-        std::string token = output.front();
-        output.pop();
+        double b = values.top(); values.pop();
+        double a = values.top(); values.pop();
 
-        if (isdigit(token[0]) || (token.length() > 1 && token[0] == '-')) {
-            values.push(stod(token));
-        } else {
-            const double b = values.top();
-            values.pop();
-            const double a = values.top();
-            values.pop();
-
-            if (token == "+") values.push(a + b);
-            if (token == "-") values.push(a - b);
-            if (token == "*") values.push(a * b);
-            if (token == "/") values.push(a / b);
-        }
+        if (op == "+") values.push(a + b);
+        if (op == "-") values.push(a - b);
+        if (op == "*") values.push(a * b);
+        if (op == "/") values.push(a / b);
     }
     return std::to_string(values.top());
 }
 
 void process_client(const int i) {
     SOCKET current_user = run_sockets[i];
-
-    WaitForSingleObject(m_semaphore, INFINITE);
-
     while (true) {
         std::string message;
         char buffer[1024];
@@ -150,50 +159,45 @@ void process_client(const int i) {
         memset(buffer, 0, sizeof(buffer));
 
         if (recv(current_user, buffer, sizeof(buffer) - 1, 0) == SOCKET_ERROR) {
-            std::cerr  << "Failed to receive message from client " << i + 1 << std::endl;
+            std::cerr  << "Server Log: Failed to receive message from client " << i + 1 << std::endl;
             closesocket(current_user);
-            ReleaseMutex(m_semaphore);
+            break;
         }
 
         message = std::string(buffer);
 
-        if (message == "CLEAR") {
-            WaitForSingleObject(m_client_mutex, INFINITE);
-            current_expression.clear();
-            std::string message_to_send = "Exprassion is clear";
-            if (send(current_user, message_to_send.c_str(), message_to_send.length() + 1, 0) == SOCKET_ERROR) {
-                std::cerr  << "Failed to send message to client " << i + 1 << std::endl;
-            }
-            ReleaseMutex(m_client_mutex);
-        }else if (message == "CALCULATE" || message == "=") {
-            WaitForSingleObject(m_client_mutex, INFINITE);
-            if (check_zero()) {
-                std::string message_to_send = "Current expression: " + current_expression + "\nCalculate result: " + calculate(current_expression);
-                if (send(current_user, message_to_send.c_str(), message_to_send.length() + 1, 0) == SOCKET_ERROR) {
-                    std::cerr  << "Failed to send message to client " << i + 1 << std::endl;
+        WaitForSingleObject(m_client_mutex, INFINITE);
+        std::cout << "Server Log: Request by client " <<  i + 1 <<" : " << message << std::endl;
+        current_expression = message;
+        std::vector<std::string> tokens;
+        std::string message_to_send;
+        if (check_correct_math_expression(tokens)) {
+            if (check_zero(tokens)) {
+                message_to_send = "Current expression: " + current_expression + " = " + calculate(tokens);
+                if (send(current_user, message_to_send.c_str(), message_to_send.size() + 1, 0) == SOCKET_ERROR) {
+                    std::cerr << "Server Log: Failed send response" << std::endl;
+                    closesocket(current_user);
+                    break;
                 }
-            }else {
-                std::string message_to_send = "Exprassion is incorrect";
-                if (send(current_user, message_to_send.c_str(), message_to_send.length() + 1, 0) == SOCKET_ERROR) {
-                    std::cerr  << "Failed to send message to client " << i + 1 << std::endl;
-                }
-            }
-            ReleaseMutex(m_client_mutex);
-        }else {
-            WaitForSingleObject(m_client_mutex, INFINITE);
-            if (add_to_response(message)) {
-                std::string message_to_send = "Successfully added response: " + message + "\nCurrent expression: " + current_expression;
-                if (send(current_user, message_to_send.c_str(), message_to_send.size()+1, 0) == SOCKET_ERROR) {
-                    std::cerr << "Failed send response" << std::endl;
-                }
-            }else {
-                std::string message_to_send = "Incorrect math expression: " + message + "\nCurrent expression: " + current_expression;
-                if (send(current_user, message_to_send.c_str(), message_to_send.size()+1, 0) == SOCKET_ERROR) {
-                    std::cerr << "Failed send response" << std::endl;
+            } else {
+                message_to_send = "Divizon by zero detected";
+                if (send(current_user, message_to_send.c_str(), message_to_send.size() + 1, 0) == SOCKET_ERROR) {
+                    std::cerr << "Server Log: Failed send response" << std::endl;
+                    closesocket(current_user);
+                    break;
                 }
             }
-            ReleaseMutex(m_client_mutex);
+        } else {
+            message_to_send = "Incorrect math expression";
+            if (send(current_user, message_to_send.c_str(), message_to_send.size() + 1, 0) == SOCKET_ERROR) {
+                std::cerr << "Server Log: Failed send response" << std::endl;
+                closesocket(current_user);
+                break;
+            }
         }
+        std::cout << "Server Log: Response to client " << i + 1 << " : " << message_to_send <<std::endl;
+        current_expression.clear();
+        ReleaseMutex(m_client_mutex);
     }
 }
 
@@ -204,11 +208,12 @@ void init() {
     addr.sin_addr.s_addr = inet_addr(info::IP);
     addr.sin_port = htons(info::SERVER_PORT);
     addr.sin_family = AF_INET;
+    int size = sizeof(addr);
 
     sock = socket(AF_INET, SOCK_STREAM, NULL);
 
     if (bind(sock, (SOCKADDR *) &addr, sizeof(addr)) == SOCKET_ERROR) {
-        std::cerr << "Failed to bind" << std::endl;
+        std::cerr << "Server Log: Failed to bind" << std::endl;
         closesocket(sock);
         WSACleanup();
         exit(1);
@@ -227,26 +232,25 @@ void init() {
 
     SOCKET accept_socket;
 
-    int count_of_clients;
-    std::cin >> count_of_clients;
+    std::cout << "Count of clients:";
+    const int count_of_clients = check_correct_count_of_clients();
 
-    m_semaphore = CreateSemaphoreA(nullptr, count_of_clients, count_of_clients, "semaphore");
 
     for (int i = 0; i < count_of_clients; i++) {
-        std::cout << "Try Client " << i << " to connect" <<std::endl;
+        std::cout << "Server Log: Try Client " << i+1 << " to connect" <<std::endl;
         launch_client();
-        accept_socket = accept(sock, (SOCKADDR*)&addr, NULL);
+        accept_socket = accept(sock, (SOCKADDR*)&addr, &size);
 
         if (!accept_socket) {
-            std::cerr << "Failed to accept client: " << i << std::endl;
+            std::cerr << "Server Log: Failed to accept client: " << i+1 << std::endl;
             if (closesocket(sock) == SOCKET_ERROR) {
-                std::cerr << "Failed to terminate connection: " << WSAGetLastError() << std::endl;
+                std::cerr << "Server Log: Failed to terminate connection: " << WSAGetLastError() << std::endl;
             }
             continue;
         }
 
         run_sockets.push_back(accept_socket);
-        std::cout << "Client " << i << " connected" << std::endl;
+        std::cout << "Server Log: Client " << i+1 << " connected" << std::endl;
     }
 
     std::vector<std::thread> threads;
@@ -261,6 +265,13 @@ void init() {
             thread.join();
         }
     }
+    std::cout << "Server Log: All clients disconnected" << std::endl;
+
+    for (auto& socket : run_sockets) {
+        closesocket(socket);
+    }
+    CloseHandle(m_client_mutex);
+    WSACleanup();
 }
 
 
