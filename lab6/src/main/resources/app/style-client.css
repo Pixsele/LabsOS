@@ -1,0 +1,38 @@
+/* Общий стиль для VBox */
+.vbox {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 20;
+    -fx-spacing: 10;
+}
+
+/* Заголовок */
+.label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+    -fx-alignment: center;
+}
+
+/* Текстовые поля и текстовые области */
+.text-field, .text-area {
+    -fx-font-size: 16px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-border-color: #ccc;
+    -fx-border-width: 1;
+    -fx-padding: 10;
+}
+
+/* Кнопка */
+.button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-padding: 10 20;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.button:hover {
+    -fx-background-color: #45a049;
+}
