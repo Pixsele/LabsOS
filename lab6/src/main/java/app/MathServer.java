@@ -4,15 +4,28 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MathServer {
 
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int MAX_CLIENTS = 2;
+    private static String line;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public static void main(String[] args) {
         new MathServer().start();
+    }
+
+    private void run() throws IOException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "java", "-cp", "C:\\Prog\\LabsOS\\lab6\\target\\classes",
+                "--module-path", "C:\\Program Files\\JavaFX\\javafx-sdk-21.0.6\\lib",
+                "--add-modules", "javafx.controls,javafx.fxml",
+                "app.Client"
+        );
+        processBuilder.start();
     }
 
     public void start() {
@@ -20,16 +33,25 @@ public class MathServer {
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT, MAX_CLIENTS, InetAddress.getByName(SERVER_IP))) {
             System.out.println("Server started on port " + SERVER_PORT);
 
+            List<Socket> clients = new ArrayList<>();
+
             int clientCount = getClientCount();
             for (int i = 0; i < clientCount; i++) {
                 System.out.println("Waiting for client " + (i + 1));
+                run();
                 Socket clientSocket = serverSocket.accept();
+                clients.add(clientSocket);
+                int index = i+1;
                 System.out.println("Client " + (i + 1) + " connected");
-                pool.execute(() -> handleClient(clientSocket));
+                pool.execute(() -> handleClient(clientSocket,index));
             }
 
             pool.shutdown();
             pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+            for (Socket client : clients) {
+                client.close();
+            }
+            serverSocket.close();
             System.out.println("Server shutting down");
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -47,20 +69,23 @@ public class MathServer {
         return input;
     }
 
-    private void handleClient(Socket socket) {
+    private void handleClient(Socket socket,int index) {
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
         ) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                System.out.println("Received: " + line);
+            String message;
+            while ((message = in.readLine()) != null) {
+                lock.lock();
+                line = message;
+                System.out.println("Received from client " +index +" : "+ line);
                 String response = processExpression(line);
                 out.println(response);
-                System.out.println("Sent: " + response);
+                System.out.println("Sent to client " +index +" : "+  response);
+                lock.unlock();
             }
         } catch (IOException e) {
-            System.err.println("Client error: " + e.getMessage());
+            System.err.println("Client "+ index + " error: " + e.getMessage());
         }
     }
 
@@ -72,11 +97,8 @@ public class MathServer {
         if (!checkDivisionByZero(tokens)) {
             return "Division by zero detected";
         }
-        try {
-            return "Current expression: " + expr + " = " + calculate(tokens);
-        } catch (Exception e) {
-            return "Evaluation error: " + e.getMessage();
-        }
+
+        return String.valueOf(calculate(tokens));
     }
 
     private List<String> tokenize(String expr) {

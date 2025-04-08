@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Objects;
 
 public class ClientController {
 
@@ -19,12 +20,12 @@ public class ClientController {
     private PrintWriter out;
 
     @FXML
-    private TextArea status;
+    private TextField status;
     @FXML
     private TextField inputExpr;
-    @FXML
-    private TextArea answer;
 
+    private String currentLine;
+    private boolean connected;
 
     @FXML
     public void initialize() throws IOException {
@@ -35,25 +36,132 @@ public class ClientController {
             out = new PrintWriter(socket.getOutputStream(), true);
 
             status.setText("Status: Online");
+            connected = true;
         }catch(IOException e){
             status.setText("Status: Offline");
+            connected = false;
         }
     }
 
     @FXML
     private void sendToServer(){
-        String input = inputExpr.getText();
-        if(input.isEmpty()) return;
+        if(connected){
+            String input = inputExpr.getText();
+            if(input.isEmpty()) return;
 
-        out.println(input);
+            out.println(input);
 
-        try{
-            String response = in.readLine();
-            answer.setText(input + " = " + response);
+            try{
+                String response = in.readLine();
+                if(Objects.equals(response, "Incorrect math expression") || Objects.equals(response, "Division by zero detected")){
+                    inputExpr.setText(response);
+                }else{
+                    inputExpr.setText(input + " = " + response);
 
-        }catch(IOException e){
-            answer.setText("Error");
+                }
+            }catch(IOException e){
+                inputExpr.setText("Error");
+            }
         }
+    }
+
+    private void printCurrentInput(){
+
+    }
+
+    @FXML
+    private void clearInput(){
+        inputExpr.setText("");
+    }
+
+    @FXML
+    private void addDigit(String digit) {
+        String input = inputExpr.getText();
+        input = input + digit;
+        inputExpr.setText(input);
+    }
+
+    @FXML
+    private void addDot(){
+        addDigit(".");
+    }
+
+    @FXML
+    private void addOne() {
+        addDigit("1");
+    }
+
+    @FXML
+    private void addTwo() {
+        addDigit("2");
+    }
+
+    @FXML
+    private void addThree() {
+        addDigit("3");
+    }
+
+    @FXML
+    private void addFour() {
+        addDigit("4");
+    }
+
+    @FXML
+    private void addFive() {
+        addDigit("5");
+    }
+
+    @FXML
+    private void addSix() {
+        addDigit("6");
+    }
+
+    @FXML
+    private void addSeven() {
+        addDigit("7");
+    }
+
+    @FXML
+    private void addEight() {
+        addDigit("8");
+    }
+
+    @FXML
+    private void addNine() {
+        addDigit("9");
+    }
+
+    @FXML
+    private void addZero() {
+        addDigit("0");
+    }
+
+    @FXML
+    private void addPlus(){
+        String input = inputExpr.getText();
+        input = input + " + ";
+        inputExpr.setText(input);
+    }
+
+    @FXML
+    private void addMinus(){
+        String input = inputExpr.getText();
+        input = input + " - ";
+        inputExpr.setText(input);
+    }
+
+    @FXML
+    private void addMultiply(){
+        String input = inputExpr.getText();
+        input = input + " * ";
+        inputExpr.setText(input);
+    }
+
+    @FXML
+    private void addDivide(){
+        String input = inputExpr.getText();
+        input = input + " / ";
+        inputExpr.setText(input);
     }
 
 }

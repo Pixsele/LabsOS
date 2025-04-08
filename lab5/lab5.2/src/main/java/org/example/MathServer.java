@@ -4,12 +4,15 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class MathServer {
 
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int MAX_CLIENTS = 2;
+    private static String line;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public static void main(String[] args) {
         new MathServer().start();
@@ -20,16 +23,29 @@ public class MathServer {
         try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT, MAX_CLIENTS, InetAddress.getByName(SERVER_IP))) {
             System.out.println("Server started on port " + SERVER_PORT);
 
+            List<Socket> clients = new ArrayList<>();
+
             int clientCount = getClientCount();
             for (int i = 0; i < clientCount; i++) {
                 System.out.println("Waiting for client " + (i + 1));
+                ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "start","java", "-cp", "out", "org.example.MathClient");
+                processBuilder.start();
                 Socket clientSocket = serverSocket.accept();
+                clients.add(clientSocket);
                 System.out.println("Client " + (i + 1) + " connected");
-                pool.execute(() -> handleClient(clientSocket));
+
+                int index = i+1;
+                pool.execute(() -> handleClient(clientSocket,index));
             }
 
             pool.shutdown();
             pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+            serverSocket.close();
+
+            for(Socket client : clients) {
+                client.close();
+            }
+
             System.out.println("Server shutting down");
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -47,20 +63,23 @@ public class MathServer {
         return input;
     }
 
-    private void handleClient(Socket socket) {
+    private void handleClient(Socket socket, int i) {
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
         ) {
-            String line;
-            while ((line = in.readLine()) != null) {
-                System.out.println("Received: " + line);
+            String message;
+            while ((message = in.readLine()) != null) {
+                lock.lock();
+                line = message;
+                System.out.println("Received from client "+ i +" : " + line);
                 String response = processExpression(line);
                 out.println(response);
-                System.out.println("Sent: " + response);
+                System.out.println("Sent to client "+ i +" : " + response);
+                lock.unlock();
             }
         } catch (IOException e) {
-            System.err.println("Client error: " + e.getMessage());
+            System.err.println("Client "+ i + " error: " + e.getMessage());
         }
     }
 
