@@ -150,7 +150,6 @@ std::string calculate(std::vector<std::string> &expr) {
 }
 
 void process_client(const int i) {
-    WaitForSingleObject(m_client_semaphore, INFINITE);
 
     SOCKET current_user = run_sockets[i];
     while (true) {
@@ -236,9 +235,10 @@ void init() {
     std::cout << "Count of clients:";
     const int count_of_clients = check_correct_count_of_clients();
 
-
-    for (int i = 0; i < count_of_clients; i++) {
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 3; i++) {
         std::cout << "Server Log: Try Client " << i+1 << " to connect" <<std::endl;
+        WaitForSingleObject(m_client_semaphore, INFINITE);
         launch_client();
         accept_socket = accept(sock, (SOCKADDR*)&addr, &size);
 
@@ -249,18 +249,15 @@ void init() {
             }
             continue;
         }
-
         run_sockets.push_back(accept_socket);
+        if (accept_socket != SOCKET_ERROR) {
+            threads.emplace_back(process_client, i);
+        }
+
         std::cout << "Server Log: Client " << i+1 << " connected" << std::endl;
     }
 
-    std::vector<std::thread> threads;
 
-    for (int i = 0; i < run_sockets.size(); i++) {
-        if (run_sockets[i] != INVALID_SOCKET) {
-            threads.emplace_back(process_client, i);
-        }
-    }
     for (auto& thread : threads) {
         if (thread.joinable()) {
             thread.join();
