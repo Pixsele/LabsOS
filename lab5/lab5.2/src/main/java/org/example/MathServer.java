@@ -6,7 +6,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class MathServer {
+public class  MathServer {
 
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
