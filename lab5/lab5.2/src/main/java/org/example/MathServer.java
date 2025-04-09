@@ -11,8 +11,7 @@ public class  MathServer {
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int MAX_CLIENTS = 2;
-    private static String line;
-    private final ReentrantLock lock = new ReentrantLock();
+    private final Semaphore semaphore = new Semaphore(MAX_CLIENTS);
 
     public static void main(String[] args) {
         new MathServer().start();
@@ -26,7 +25,8 @@ public class  MathServer {
             List<Socket> clients = new ArrayList<>();
 
             int clientCount = getClientCount();
-            for (int i = 0; i < clientCount; i++) {
+            for (int i = 0; i < 3; i++) {
+                semaphore.acquire();
                 System.out.println("Waiting for client " + (i + 1));
                 ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "start","java", "-cp", "out", "org.example.MathClient");
                 processBuilder.start();
@@ -35,7 +35,10 @@ public class  MathServer {
                 System.out.println("Client " + (i + 1) + " connected");
 
                 int index = i+1;
-                pool.execute(() -> handleClient(clientSocket,index));
+                pool.execute(() -> {
+                    handleClient(clientSocket, index);
+                    semaphore.release();
+                });
             }
 
             pool.shutdown();
@@ -63,20 +66,17 @@ public class  MathServer {
         return input;
     }
 
-    private void handleClient(Socket socket, int i) {
+    private void handleClient(Socket socket, int i){
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
         ) {
             String message;
             while ((message = in.readLine()) != null) {
-                lock.lock();
-                line = message;
-                System.out.println("Received from client "+ i +" : " + line);
-                String response = processExpression(line);
+                System.out.println("Received from client "+ i +" : " + message);
+                String response = processExpression(message);
                 out.println(response);
                 System.out.println("Sent to client "+ i +" : " + response);
-                lock.unlock();
             }
         } catch (IOException e) {
             System.err.println("Client "+ i + " error: " + e.getMessage());

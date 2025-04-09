@@ -11,8 +11,7 @@ public class MathServer {
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int MAX_CLIENTS = 2;
-    private static String line;
-    private final ReentrantLock lock = new ReentrantLock();
+    private final Semaphore semaphore = new Semaphore(MAX_CLIENTS);
 
     public static void main(String[] args) {
         new MathServer().start();
@@ -37,13 +36,17 @@ public class MathServer {
 
             int clientCount = getClientCount();
             for (int i = 0; i < clientCount; i++) {
+                semaphore.acquire();
                 System.out.println("Waiting for client " + (i + 1));
                 run();
                 Socket clientSocket = serverSocket.accept();
                 clients.add(clientSocket);
                 int index = i+1;
                 System.out.println("Client " + (i + 1) + " connected");
-                pool.execute(() -> handleClient(clientSocket,index));
+                pool.execute(() -> {
+                    handleClient(clientSocket, index);
+                    semaphore.release();
+                });
             }
 
             pool.shutdown();
@@ -76,13 +79,10 @@ public class MathServer {
         ) {
             String message;
             while ((message = in.readLine()) != null) {
-                lock.lock();
-                line = message;
-                System.out.println("Received from client " +index +" : "+ line);
-                String response = processExpression(line);
+                System.out.println("Received from client " +index +" : "+ message);
+                String response = processExpression(message);
                 out.println(response);
                 System.out.println("Sent to client " +index +" : "+  response);
-                lock.unlock();
             }
         } catch (IOException e) {
             System.err.println("Client "+ index + " error: " + e.getMessage());
