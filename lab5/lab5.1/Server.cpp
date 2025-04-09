@@ -12,11 +12,10 @@
 SOCKET sock;
 
 std::vector<SOCKET> run_sockets;
-HANDLE m_client_mutex;
-std::string current_expression;
+HANDLE m_client_semaphore;
 
 void launch_client() {
-    const auto run_client = R"(start C:\Prog\LabsOS\lab5\Client.exe)";
+    const auto run_client = R"(start C:\Progs\LabsOS\lab5\lab5.1\Client.exe)";
     system(run_client);
 }
 int check_correct_count_of_clients() {
@@ -47,7 +46,7 @@ bool check_correct_number(std::string number) {
     return true;
 }
 
-bool check_correct_math_expression(std::vector<std::string>& tokens) {
+bool check_correct_math_expression(std::vector<std::string>& tokens,std::string current_expression) {
 
     std::vector<std::string> words;
     std::stringstream ss(current_expression);
@@ -151,6 +150,8 @@ std::string calculate(std::vector<std::string> &expr) {
 }
 
 void process_client(const int i) {
+    WaitForSingleObject(m_client_semaphore, INFINITE);
+
     SOCKET current_user = run_sockets[i];
     while (true) {
         std::string message;
@@ -166,12 +167,12 @@ void process_client(const int i) {
 
         message = std::string(buffer);
 
-        WaitForSingleObject(m_client_mutex, INFINITE);
         std::cout << "Server Log: Request by client " <<  i + 1 <<" : " << message << std::endl;
+        std::string current_expression;
         current_expression = message;
         std::vector<std::string> tokens;
         std::string message_to_send;
-        if (check_correct_math_expression(tokens)) {
+        if (check_correct_math_expression(tokens,current_expression)) {
             if (check_zero(tokens)) {
                 message_to_send = "Current expression: " + current_expression + " = " + calculate(tokens);
                 if (send(current_user, message_to_send.c_str(), message_to_send.size() + 1, 0) == SOCKET_ERROR) {
@@ -197,12 +198,12 @@ void process_client(const int i) {
         }
         std::cout << "Server Log: Response to client " << i + 1 << " : " << message_to_send <<std::endl;
         current_expression.clear();
-        ReleaseMutex(m_client_mutex);
     }
+    ReleaseSemaphore(m_client_semaphore,1,nullptr);
 }
 
 void init() {
-    m_client_mutex = CreateMutexA(nullptr, false, "client_mutex");
+    m_client_semaphore = CreateSemaphoreA(nullptr, 2, 2, "process");
 
     SOCKADDR_IN addr;
     addr.sin_addr.s_addr = inet_addr(info::IP);
@@ -270,7 +271,7 @@ void init() {
     for (auto& socket : run_sockets) {
         closesocket(socket);
     }
-    CloseHandle(m_client_mutex);
+    CloseHandle(m_client_semaphore);
     WSACleanup();
 }
 
