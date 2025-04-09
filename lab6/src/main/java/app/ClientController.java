@@ -15,7 +15,7 @@ public class ClientController {
 
     private static final String SERVER_IP = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
-    private Socket socket;
+    private static Socket socket;
     private BufferedReader in;
     private PrintWriter out;
 
@@ -56,7 +56,7 @@ public class ClientController {
                 if(Objects.equals(response, "Incorrect math expression") || Objects.equals(response, "Division by zero detected")){
                     inputExpr.setText(response);
                 }else{
-                    inputExpr.setText(input + " = " + response);
+                    inputExpr.setText(response);
 
                 }
             }catch(IOException e){
