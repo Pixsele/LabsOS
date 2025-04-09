@@ -1,5 +1,7 @@
+#include <chrono>
 #include <winsock2.h>
 #include <iostream>
+#include <thread>
 
 #include "info.hpp"
 
@@ -11,9 +13,10 @@ std::string from_server(SOCKET socket) {
     memset(buffer, 0, sizeof(buffer));
 
     if (recv(socket, buffer, sizeof(buffer) - 1, 0) == -1) {
-        std::cerr << "Server disconnect" << std::endl;
+        std::cout << "Server disconnect" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         if(closesocket(socket) == SOCKET_ERROR){
-            std::cerr << "Failed close socket" << std::endl;
+            std::cout << "Failed close socket" << std::endl;
         };
         WSACleanup();
         exit(1);
@@ -27,10 +30,11 @@ std::string from_server(SOCKET socket) {
 
 void to_Server(std::string message,SOCKET socket) {
 
-    if (send(socket, message.c_str(),strlen(message.c_str()), 0) == SOCKET_ERROR) {
-        std::cerr << "Server disconnect";
+    if (send(socket, message.c_str(),strlen(message.c_str()), 0) == -1) {
+        std::cout << "Server disconnect";
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         if(closesocket(socket) == SOCKET_ERROR){
-            std::cerr << "Failed close socket" << std::endl;
+            std::cout << "Failed close socket" << std::endl;
         };
         WSACleanup();
         exit(1);
@@ -62,6 +66,10 @@ int main() {
     }
 
     std::cout << "Success connect to server.\n";
+
+    std::string number = from_server(sock);
+    std::cout <<"Client# " <<number << std::endl;
+
 
     while (true) {
         std::string message;

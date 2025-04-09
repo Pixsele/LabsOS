@@ -1,4 +1,4 @@
-C:/Progs/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/server.dir
-C:/Progs/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/client.dir
-C:/Progs/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Progs/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+C:/Prog/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/server.dir
+C:/Prog/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/client.dir
+C:/Prog/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Prog/LabsOS/lab5/lab5.1/cmake-build-debug/CMakeFiles/rebuild_cache.dir

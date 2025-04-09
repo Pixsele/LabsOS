@@ -58,8 +58,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Progs/LabsOS/lab5/lab5.1/cmake-build-debug",
-		"source" : "C:/Progs/LabsOS/lab5/lab5.1"
+		"build" : "C:/Prog/LabsOS/lab5/lab5.1/cmake-build-debug",
+		"source" : "C:/Prog/LabsOS/lab5/lab5.1"
 	},
 	"version" : 
 	{

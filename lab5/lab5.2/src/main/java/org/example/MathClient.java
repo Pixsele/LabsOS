@@ -18,8 +18,12 @@ public class MathClient{
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              Scanner scanner = new Scanner(System.in)) {
 
+
             System.out.println("Connected to server.");
 
+
+            String index = in.readLine();
+            System.out.println("Client#: " + index);
             while (true) {
                 System.out.print("Enter expression: ");
                 String input = scanner.nextLine();

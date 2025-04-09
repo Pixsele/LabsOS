@@ -1,6 +1,5 @@
-/* styles.css */
 .anchor-pane {
-    -fx-background-color: #f80000; /* Цвет фона для AnchorPane */
+    -fx-background-color: #f80000;
 }
 
 .grid-pane {

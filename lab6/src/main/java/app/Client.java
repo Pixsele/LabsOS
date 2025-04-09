@@ -13,13 +13,18 @@ public class Client extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("client.fxml"));
         Scene scene = new Scene(fxmlLoader.load());
-        stage.setTitle("Client");
+
+        String index = getParameters().getRaw().getFirst();
+
+        stage.setTitle("Client " + index);
         stage.setScene(scene);
         stage.setResizable(false);
         stage.show();
     }
 
     public static void main(String[] args) {
-        launch();
+        String index = args[0];
+        System.out.println(index);
+        launch(args);
     }
 }

@@ -2,7 +2,6 @@
 
 #include <WinSock2.h>
 #include <iostream>
-#include <list>
 #include <queue>
 #include <sstream>
 #include <stack>
@@ -15,12 +14,12 @@ std::vector<SOCKET> run_sockets;
 HANDLE m_client_semaphore;
 
 void launch_client() {
-    const auto run_client = R"(start C:\Progs\LabsOS\lab5\lab5.1\Client.exe)";
+    const auto run_client = R"(start C:\Prog\LabsOS\lab5\lab5.1\Client.exe)";
     system(run_client);
 }
 int check_correct_count_of_clients() {
     int input = 0;
-    while (!(std::cin >> input) || std::cin.peek() != '\n' || input > 2 || input < 1) {
+    while (!(std::cin >> input) || std::cin.peek() != '\n' || input > 10 || input < 1) {
         std::cin.clear();
         while (std::cin.get() != '\n'){}
         std::cout << "Please enter a number between 1 and 2: ";
@@ -107,7 +106,7 @@ int precedence(const std::string& op) {
     return 0;
 }
 
-std::string calculate(std::vector<std::string> &expr) {
+std::string calculate(const std::vector<std::string> &expr) {
     std::stack<std::string> operators;
     std::queue<std::string> output;
     std::stack<double> values;
@@ -152,6 +151,13 @@ std::string calculate(std::vector<std::string> &expr) {
 void process_client(const int i) {
 
     SOCKET current_user = run_sockets[i];
+
+    std::string index = std::to_string(i+1);
+    if (send(current_user, index.c_str(), index.size() + 1, 0) == SOCKET_ERROR) {
+        std::cerr << "Server Log: Failed to send number" << std::endl;
+        closesocket(current_user);
+    }
+
     while (true) {
         std::string message;
         char buffer[1024];
@@ -163,6 +169,8 @@ void process_client(const int i) {
             closesocket(current_user);
             break;
         }
+
+
 
         message = std::string(buffer);
 
@@ -236,7 +244,7 @@ void init() {
     const int count_of_clients = check_correct_count_of_clients();
 
     std::vector<std::thread> threads;
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < count_of_clients; i++) {
         std::cout << "Server Log: Try Client " << i+1 << " to connect" <<std::endl;
         WaitForSingleObject(m_client_semaphore, INFINITE);
         launch_client();

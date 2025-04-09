@@ -17,12 +17,13 @@ public class MathServer {
         new MathServer().start();
     }
 
-    private void run() throws IOException {
+    private void run(String index) throws IOException {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "java", "-cp", "C:\\Prog\\LabsOS\\lab6\\target\\classes",
                 "--module-path", "C:\\Program Files\\JavaFX\\javafx-sdk-21.0.6\\lib",
                 "--add-modules", "javafx.controls,javafx.fxml",
-                "app.Client"
+                "app.Client",
+                index
         );
         processBuilder.start();
     }
@@ -38,7 +39,7 @@ public class MathServer {
             for (int i = 0; i < clientCount; i++) {
                 semaphore.acquire();
                 System.out.println("Waiting for client " + (i + 1));
-                run();
+                run(String.valueOf(i+1));
                 Socket clientSocket = serverSocket.accept();
                 clients.add(clientSocket);
                 int index = i+1;
@@ -50,7 +51,11 @@ public class MathServer {
             }
 
             pool.shutdown();
-            pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+
+            if(pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS)){
+                System.out.println("All threads terminated");
+            }
+
             for (Socket client : clients) {
                 client.close();
             }
@@ -78,7 +83,8 @@ public class MathServer {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
         ) {
             String message;
-            while ((message = in.readLine()) != null) {
+            while (true) {
+                message = in.readLine();
                 System.out.println("Received from client " +index +" : "+ message);
                 String response = processExpression(message);
                 out.println(response);
@@ -91,7 +97,7 @@ public class MathServer {
 
     private String processExpression(String expr) {
         List<String> tokens = tokenize(expr);
-        if (tokens == null || tokens.size() < 3 || !validate(tokens)) {
+        if (tokens.size() < 3 || !validate(tokens)) {
             return "Incorrect math expression";
         }
         if (!checkDivisionByZero(tokens)) {

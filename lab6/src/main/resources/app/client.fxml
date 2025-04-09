@@ -124,6 +124,11 @@
                   <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />
                </GridPane.margin>
             </Button>
+            <Button mnemonicParsing="false" onAction="#printName" prefHeight="1000.0" prefWidth="1000.0" text="N" GridPane.columnIndex="4" GridPane.rowIndex="1">
+               <GridPane.margin>
+                  <Insets bottom="3.0" left="3.0" right="3.0" top="3.0" />
+               </GridPane.margin>
+            </Button>
          </children>
       </GridPane>
       <TextField fx:id="status" editable="false" focusTraversable="false" layoutX="25.0" layoutY="64.0" prefHeight="40.0" prefWidth="300.0" promptText="Status">

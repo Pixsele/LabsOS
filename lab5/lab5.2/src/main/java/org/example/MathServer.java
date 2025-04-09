@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class  MathServer {
 
@@ -19,16 +18,16 @@ public class  MathServer {
 
     public void start() {
         ExecutorService pool = Executors.newFixedThreadPool(MAX_CLIENTS);
-        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT, MAX_CLIENTS, InetAddress.getByName(SERVER_IP))) {
+        try (ServerSocket serverSocket = new ServerSocket(SERVER_PORT, 0, InetAddress.getByName(SERVER_IP))) {
             System.out.println("Server started on port " + SERVER_PORT);
 
             List<Socket> clients = new ArrayList<>();
 
             int clientCount = getClientCount();
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < clientCount; i++) {
                 semaphore.acquire();
                 System.out.println("Waiting for client " + (i + 1));
-                ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "start","java", "-cp", "out", "org.example.MathClient");
+                ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c", "start","java", "-cp", "target/classes", "org.example.MathClient");
                 processBuilder.start();
                 Socket clientSocket = serverSocket.accept();
                 clients.add(clientSocket);
@@ -42,8 +41,9 @@ public class  MathServer {
             }
 
             pool.shutdown();
-            pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-            serverSocket.close();
+            if(pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS)){
+                System.out.println("All threads terminated");
+            }
 
             for(Socket client : clients) {
                 client.close();
@@ -72,6 +72,8 @@ public class  MathServer {
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
         ) {
             String message;
+            out.println(i);
+
             while ((message = in.readLine()) != null) {
                 System.out.println("Received from client "+ i +" : " + message);
                 String response = processExpression(message);
@@ -85,7 +87,7 @@ public class  MathServer {
 
     private String processExpression(String expr) {
         List<String> tokens = tokenize(expr);
-        if (tokens == null || tokens.size() < 3 || !validate(tokens)) {
+        if (tokens.size() < 3 || !validate(tokens)) {
             return "Incorrect math expression";
         }
         if (!checkDivisionByZero(tokens)) {
@@ -120,7 +122,7 @@ public class  MathServer {
         try {
             Double.parseDouble(token);
             return true;
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return false;
         }
     }

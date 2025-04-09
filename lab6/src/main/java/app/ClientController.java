@@ -1,15 +1,16 @@
 package app;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Objects;
+
+import static java.lang.System.exit;
 
 public class ClientController {
 
@@ -24,11 +25,11 @@ public class ClientController {
     @FXML
     private TextField inputExpr;
 
-    private String currentLine;
     private boolean connected;
 
     @FXML
-    public void initialize() throws IOException {
+    public void initialize() {
+
         status.setEditable(false);
         try{
             socket = new Socket(SERVER_IP, SERVER_PORT);
@@ -37,14 +38,16 @@ public class ClientController {
 
             status.setText("Status: Online");
             connected = true;
+
         }catch(IOException e){
             status.setText("Status: Offline");
             connected = false;
         }
+
     }
 
     @FXML
-    private void sendToServer(){
+    private void sendToServer() throws InterruptedException {
         if(connected){
             String input = inputExpr.getText();
             if(input.isEmpty()) return;
@@ -53,20 +56,11 @@ public class ClientController {
 
             try{
                 String response = in.readLine();
-                if(Objects.equals(response, "Incorrect math expression") || Objects.equals(response, "Division by zero detected")){
-                    inputExpr.setText(response);
-                }else{
-                    inputExpr.setText(response);
-
-                }
+                inputExpr.setText(response);
             }catch(IOException e){
-                inputExpr.setText("Error");
+                status.setText("Status: Offline, try to restart");
             }
         }
-    }
-
-    private void printCurrentInput(){
-
     }
 
     @FXML
@@ -89,6 +83,11 @@ public class ClientController {
     @FXML
     private void addOne() {
         addDigit("1");
+    }
+
+    @FXML
+    private void printName(){
+        status.setText("Kirill Vorobyev");
     }
 
     @FXML
